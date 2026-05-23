@@ -10,6 +10,7 @@ class Puzzle:
         self.selected = None
         self.reference = None
         self._cached_combined = None
+        self._cached_thumb = None
 
     def create(self, frame, grid_size=None):
         if grid_size:
@@ -23,7 +24,6 @@ class Puzzle:
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 tile = frame[i*th:(i+1)*th, j*tw:(j+1)*tw]
-                tile = cv2.resize(tile, (tw, th))
                 self.tiles.append(tile)
 
         n = len(self.tiles)
@@ -37,6 +37,7 @@ class Puzzle:
 
         random.shuffle(self.order)
         self._cached_combined = None
+        self._cached_thumb = None
 
     def combine(self):
         if self._cached_combined is not None:
@@ -89,15 +90,18 @@ class Puzzle:
             return
 
         h, w, _ = frame.shape
-        rh, rw = self.reference.shape[:2]
-        scale = max_size / max(rh, rw)
-        new_w = int(rw * scale)
-        new_h = int(rh * scale)
-        thumb = cv2.resize(self.reference, (new_w, new_h))
+        
+        if self._cached_thumb is None:
+            rh, rw = self.reference.shape[:2]
+            scale = max_size / max(rh, rw)
+            new_w = int(rw * scale)
+            new_h = int(rh * scale)
+            self._cached_thumb = cv2.resize(self.reference, (new_w, new_h))
 
+        new_h, new_w = self._cached_thumb.shape[:2]
         x = w - new_w - margin
         y = margin
-        frame[y:y+new_h, x:x+new_w] = thumb
+        frame[y:y+new_h, x:x+new_w] = self._cached_thumb
         cv2.rectangle(frame, (x-2, y-2), (x+new_w+2, y+new_h+2), (255, 255, 255), 2)
 
     def is_solved(self):
