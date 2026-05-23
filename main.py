@@ -118,9 +118,10 @@ def draw_styled_text(img, text, pos, font_scale=0.8, color=(255, 255, 255), thic
     cv2.putText(img, text, pos, cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
 
 def draw_overlay(img, text_lines, x, y, w, h):
-    overlay = img.copy()
-    cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 0, 0), -1)
-    cv2.addWeighted(overlay, 0.4, img, 0.6, 0, img)
+    sub_img = img[y:y+h, x:x+w]
+    black_rect = np.zeros(sub_img.shape, dtype=np.uint8)
+    res = cv2.addWeighted(sub_img, 0.6, black_rect, 0.4, 0)
+    img[y:y+h, x:x+w] = res
     
     for i, line in enumerate(text_lines):
         draw_styled_text(img, line, (x + 20, y + 40 + i*40))
@@ -195,6 +196,13 @@ while True:
 
             if pinch and not prev_pinch:
                 if abs(x2 - x1) > 150 and abs(y2 - y1) > 150:
+                    w_crop = x2 - x1
+                    h_crop = y2 - y1
+                    w_crop -= w_crop % current_grid_size
+                    h_crop -= h_crop % current_grid_size
+                    x2 = x1 + w_crop
+                    y2 = y1 + h_crop
+                    
                     sel_x1, sel_y1, sel_x2, sel_y2 = x1, y1, x2, y2
                     crop = frame[y1:y2, x1:x2]
                     if crop.size != 0:
@@ -213,7 +221,6 @@ while True:
 
         if sel_x1 is not None:
             puzzle_img = puzzle.combine()
-            puzzle_img = cv2.resize(puzzle_img, (sel_x2 - sel_x1, sel_y2 - sel_y1))
             output[sel_y1:sel_y2, sel_x1:sel_x2] = puzzle_img
             draw_grid(output, sel_x1, sel_y1, sel_x2, sel_y2, current_grid_size, current_grid_size)
 

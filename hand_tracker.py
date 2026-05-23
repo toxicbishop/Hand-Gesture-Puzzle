@@ -16,6 +16,7 @@ class HandTracker:
 
     def find_hands(self, frame):
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb.flags.writeable = False
         self.results = self.hands.process(rgb)
 
     def draw_hands(self, frame):
