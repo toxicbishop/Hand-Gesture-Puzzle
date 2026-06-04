@@ -1,5 +1,11 @@
 # Hand Gesture Puzzle
 
+[![CodeQL](https://github.com/toxicbishop/hand-gesture-puzzle/actions/workflows/codeql.yml/badge.svg)](https://github.com/toxicbishop/hand-gesture-puzzle/actions/workflows/codeql.yml)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
+
 A real-time computer vision-based interactive puzzle game where users create and solve image puzzles using **hand gestures instead of a mouse or touch input**.
 
 Built using **OpenCV** and **MediaPipe**, this project tracks hand movements in real-time and enables a fully gesture-controlled experience.
