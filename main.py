@@ -38,6 +38,8 @@ if not cap.isOpened():
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # type: ignore
+cap.set(cv2.CAP_PROP_FPS, 30)
 
 show_loading("Warming up model...")
 tracker = HandTracker()
@@ -148,8 +150,7 @@ while True:
     frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
-    if frame_count % DETECT_EVERY == 0:
-        tracker.find_hands(frame)
+    tracker.find_hands(frame)
     tracker.draw_hands(frame)
     frame_count += 1
 
@@ -227,8 +228,8 @@ while True:
         # pointer smoothing
         if detected:
             cx, cy = int(ix * w), int(iy * h)
-            cx = max(sel_x1, min(cx, sel_x2))
-            cy = max(sel_y1, min(cy, sel_y2))
+            cx = max(sel_x1, min(cx, sel_x2)) # type: ignore
+            cy = max(sel_y1, min(cy, sel_y2)) # type: ignore
             smooth_x = int(alpha * cx + (1 - alpha) * smooth_x)
             smooth_y = int(alpha * cy + (1 - alpha) * smooth_y)
 
@@ -250,7 +251,7 @@ while True:
                     local = to_local(px, py, sel_x1, sel_y1, sel_x2, sel_y2, w, h)
                     if local:
                         idx = puzzle.get_index(local[0], local[1])
-                        puzzle.selected = idx
+                        puzzle.selected = idx # type: ignore
                         dragging = True
             elif not pinch and prev_pinch:
                 if dragging and puzzle.selected is not None:
@@ -263,7 +264,7 @@ while True:
                     if puzzle.is_solved():
                         solved = True
                         end_time = time.time()
-                        final_time = end_time - start_time
+                        final_time = end_time - start_time # type: ignore
                         scores_handler.update_score(current_grid_size, final_time)
 
         prev_pinch = pinch
@@ -298,7 +299,7 @@ while True:
             draw_styled_text(output, f"{int(perc)}%", (230, 78), font_scale=0.5)
 
         if solved:
-            final_t = end_time - start_time
+            final_t = end_time - start_time # type: ignore
             draw_overlay(output, [
                 "PUZZLE SOLVED!",
                 f"Your Time: {final_t:.2f}s",
