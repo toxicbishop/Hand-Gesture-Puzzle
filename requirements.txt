@@ -1,4 +1,4 @@
-opencv-python>=4.8,<5.0
+opencv-python>=5.0.0.93,<6.0
 mediapipe==0.10.14
 numpy>=1.26.0,<2.0
 sounddevice>=0.5.5,<1.0
