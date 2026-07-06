@@ -6,8 +6,14 @@ import time
 import numpy as np
 
 WINDOW_NAME = "Live Puzzle"
-cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-cv2.resizeWindow(WINDOW_NAME, 1280, 720)
+# AUTOSIZE locks the window to exactly match whatever frame is shown, with a
+# direct 1:1 pixel mapping. WINDOW_NORMAL allows manual resizing/maximizing,
+# and imshow() always stretches the frame to fill the window regardless of
+# aspect ratio - so even after correcting the initial window size, dragging
+# or maximizing the window would re-introduce the exact same stretch. AUTOSIZE
+# removes that possibility entirely since the window can't be resized independent
+# of the frame.
+cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
 
 
 def show_loading(message):
@@ -67,6 +73,9 @@ if actual_fourcc_str.strip() != "MJPG":
     actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     actual_fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"Camera now running at: {actual_w}x{actual_h} @ {actual_fps}fps")
+
+# No manual window resizing needed here - WINDOW_AUTOSIZE (set above) keeps
+# the window matched to whatever frame size imshow() actually receives.
 
 show_loading("Warming up model...")
 tracker = HandTracker()
