@@ -40,6 +40,24 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # type: ignore
 cap.set(cv2.CAP_PROP_FPS, 30)
+# Keep the internal capture buffer at 1 frame. Without this, USB webcams on
+# DSHOW/MSMF can queue several frames internally; if our loop (capture ->
+# MediaPipe -> render) ever runs slower than the camera's frame interval,
+# that queue grows and the display keeps falling further behind real time.
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+# Sanity-check what the camera actually granted vs what we asked for.
+# Many budget USB webcams silently ignore MJPG and fall back to raw YUY2 at
+# 1280x720, which is much heavier over USB2 and tanks effective FPS.
+actual_fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+actual_fourcc_str = "".join([chr((actual_fourcc >> 8 * i) & 0xFF) for i in range(4)])
+actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+actual_fps = cap.get(cv2.CAP_PROP_FPS)
+print(f"Camera granted: {actual_w}x{actual_h} @ {actual_fps}fps, fourcc={actual_fourcc_str}")
+if actual_fourcc_str.strip() != "MJPG":
+    print("WARNING: Camera did not honor MJPG. If lag persists, try lowering "
+          "CAP_PROP_FRAME_WIDTH/HEIGHT to 640x480 for this webcam.")
 
 show_loading("Warming up model...")
 tracker = HandTracker()
@@ -150,9 +168,16 @@ while True:
     frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
-    tracker.find_hands(frame)
-    tracker.draw_hands(frame)
     frame_count += 1
+    # MediaPipe inference is the most expensive part of the loop. Running it
+    # on every frame is what makes a slower USB webcam feel laggy: the loop
+    # can't keep pace with incoming frames, so frames back up and the puzzle
+    # display trails behind your actual hand position. Skipping detection on
+    # alternate frames (and reusing the last result) keeps the render loop
+    # fast even when the camera itself is the bottleneck.
+    if frame_count % DETECT_EVERY == 0:
+        tracker.find_hands(frame)
+    tracker.draw_hands(frame)
 
     pinch, px, py = tracker.get_pinch()
     detected, ix, iy = tracker.get_index_pos()
