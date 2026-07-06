@@ -56,8 +56,17 @@ actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 actual_fps = cap.get(cv2.CAP_PROP_FPS)
 print(f"Camera granted: {actual_w}x{actual_h} @ {actual_fps}fps, fourcc={actual_fourcc_str}")
 if actual_fourcc_str.strip() != "MJPG":
-    print("WARNING: Camera did not honor MJPG. If lag persists, try lowering "
-          "CAP_PROP_FRAME_WIDTH/HEIGHT to 640x480 for this webcam.")
+    print("WARNING: Camera did not honor MJPG (got uncompressed fallback). "
+          "Uncompressed video at 1280x720@30fps (~440 Mbps) exceeds USB 2.0's "
+          "practical throughput (~280-320 Mbps), which causes exactly this kind "
+          "of lag upstream of Python entirely. Falling back to 640x480 to fit "
+          "inside USB 2.0 bandwidth.")
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Camera now running at: {actual_w}x{actual_h} @ {actual_fps}fps")
 
 show_loading("Warming up model...")
 tracker = HandTracker()
