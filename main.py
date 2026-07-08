@@ -6,8 +6,14 @@ import time
 import numpy as np
 
 WINDOW_NAME = "Live Puzzle"
-cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-cv2.resizeWindow(WINDOW_NAME, 1280, 720)
+# AUTOSIZE locks the window to exactly match whatever frame is shown, with a
+# direct 1:1 pixel mapping. WINDOW_NORMAL allows manual resizing/maximizing,
+# and imshow() always stretches the frame to fill the window regardless of
+# aspect ratio - so even after correcting the initial window size, dragging
+# or maximizing the window would re-introduce the exact same stretch. AUTOSIZE
+# removes that possibility entirely since the window can't be resized independent
+# of the frame.
+cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
 
 
 def show_loading(message):
@@ -38,6 +44,38 @@ if not cap.isOpened():
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # type: ignore
+cap.set(cv2.CAP_PROP_FPS, 30)
+# Keep the internal capture buffer at 1 frame. Without this, USB webcams on
+# DSHOW/MSMF can queue several frames internally; if our loop (capture ->
+# MediaPipe -> render) ever runs slower than the camera's frame interval,
+# that queue grows and the display keeps falling further behind real time.
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+# Sanity-check what the camera actually granted vs what we asked for.
+# Many budget USB webcams silently ignore MJPG and fall back to raw YUY2 at
+# 1280x720, which is much heavier over USB2 and tanks effective FPS.
+actual_fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+actual_fourcc_str = "".join([chr((actual_fourcc >> 8 * i) & 0xFF) for i in range(4)])
+actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+actual_fps = cap.get(cv2.CAP_PROP_FPS)
+print(f"Camera granted: {actual_w}x{actual_h} @ {actual_fps}fps, fourcc={actual_fourcc_str}")
+if actual_fourcc_str.strip() != "MJPG":
+    print("WARNING: Camera did not honor MJPG (got uncompressed fallback). "
+          "Uncompressed video at 1280x720@30fps (~440 Mbps) exceeds USB 2.0's "
+          "practical throughput (~280-320 Mbps), which causes exactly this kind "
+          "of lag upstream of Python entirely. Falling back to 640x480 to fit "
+          "inside USB 2.0 bandwidth.")
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Camera now running at: {actual_w}x{actual_h} @ {actual_fps}fps")
+
+# No manual window resizing needed here - WINDOW_AUTOSIZE (set above) keeps
+# the window matched to whatever frame size imshow() actually receives.
 
 show_loading("Warming up model...")
 tracker = HandTracker()
@@ -148,10 +186,16 @@ while True:
     frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
+    frame_count += 1
+    # MediaPipe inference is the most expensive part of the loop. Running it
+    # on every frame is what makes a slower USB webcam feel laggy: the loop
+    # can't keep pace with incoming frames, so frames back up and the puzzle
+    # display trails behind your actual hand position. Skipping detection on
+    # alternate frames (and reusing the last result) keeps the render loop
+    # fast even when the camera itself is the bottleneck.
     if frame_count % DETECT_EVERY == 0:
         tracker.find_hands(frame)
     tracker.draw_hands(frame)
-    frame_count += 1
 
     pinch, px, py = tracker.get_pinch()
     detected, ix, iy = tracker.get_index_pos()
@@ -227,8 +271,8 @@ while True:
         # pointer smoothing
         if detected:
             cx, cy = int(ix * w), int(iy * h)
-            cx = max(sel_x1, min(cx, sel_x2))
-            cy = max(sel_y1, min(cy, sel_y2))
+            cx = max(sel_x1, min(cx, sel_x2)) # type: ignore
+            cy = max(sel_y1, min(cy, sel_y2)) # type: ignore
             smooth_x = int(alpha * cx + (1 - alpha) * smooth_x)
             smooth_y = int(alpha * cy + (1 - alpha) * smooth_y)
 
@@ -250,7 +294,7 @@ while True:
                     local = to_local(px, py, sel_x1, sel_y1, sel_x2, sel_y2, w, h)
                     if local:
                         idx = puzzle.get_index(local[0], local[1])
-                        puzzle.selected = idx
+                        puzzle.selected = idx # type: ignore
                         dragging = True
             elif not pinch and prev_pinch:
                 if dragging and puzzle.selected is not None:
@@ -263,7 +307,7 @@ while True:
                     if puzzle.is_solved():
                         solved = True
                         end_time = time.time()
-                        final_time = end_time - start_time
+                        final_time = end_time - start_time # type: ignore
                         scores_handler.update_score(current_grid_size, final_time)
 
         prev_pinch = pinch
@@ -298,7 +342,7 @@ while True:
             draw_styled_text(output, f"{int(perc)}%", (230, 78), font_scale=0.5)
 
         if solved:
-            final_t = end_time - start_time
+            final_t = end_time - start_time # type: ignore
             draw_overlay(output, [
                 "PUZZLE SOLVED!",
                 f"Your Time: {final_t:.2f}s",
