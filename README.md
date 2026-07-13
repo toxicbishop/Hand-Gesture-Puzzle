@@ -1,8 +1,8 @@
 # Hand Gesture Puzzle
 
 [![CodeQL](https://github.com/toxicbishop/hand-gesture-puzzle/actions/workflows/codeql.yml/badge.svg)](https://github.com/toxicbishop/hand-gesture-puzzle/actions/workflows/codeql.yml)
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white)
+![Python 3.12.x](https://img.shields.io/badge/Python_3.12.x-3776AB?logo=python&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
