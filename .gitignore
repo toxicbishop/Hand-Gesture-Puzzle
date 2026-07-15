@@ -10,3 +10,9 @@ __pycache__/
 
 #VScode
 .vscode/
+
+# PyInstaller / Build outputs
+build/
+dist/
+*.spec
+*.exe
