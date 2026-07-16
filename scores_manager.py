@@ -1,7 +1,13 @@
 import json
 import os
+import sys
 
-SCORES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scores.json")
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+SCORES_PATH = os.path.join(get_base_path(), "scores.json")
 
 
 class ScoresManager:
